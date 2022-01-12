@@ -3,10 +3,12 @@
 #include <stdlib.h>
 #include <fcntl.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #define STDIN 0
 #define STDOUT 1
 #define STDERR 2
-#define PIPE_IN 0
+#define PIPE_IN 1
 #define PIPE_OUT 0
 #define TYPE_END 0
 #define TYPE_PIPE 1
@@ -145,7 +147,81 @@ int	parse_arg(t_list **cmds, char *arg)
 	}
 }
 
-int	main(int argc, char **argv)
+int	exec_cmd(t_list *cmd, char **env)
+{
+	int	pipe_open;
+	int	pid;
+	int	execve_ret;
+	int	status;
+
+	pipe_open = 0;
+	if (cmd->type == TYPE_PIPE || (cmd->prev && cmd->prev->type == TYPE_PIPE))
+	{
+		pipe_open = 1;
+		if(pipe(cmd->pipes))
+			return (exit_fatal());
+	}
+	pid = fork();
+	if (pid < 0)
+		return exit_fatal();
+	else if (pid == 0)
+	{
+		if (cmd->type == TYPE_PIPE && dup2(cmd->pipes[PIPE_IN], STDOUT) < 0)
+			return exit_fatal();
+		if ((cmd->prev && cmd->prev->type == TYPE_PIPE) && dup2(cmd->prev->pipes[PIPE_OUT], STDIN) < 0)
+			return exit_fatal();
+		if (execve_ret = execve(cmd->args[0], cmd->args, env) < 0)
+		{
+			print_err("error: cannot execute ");
+			print_err(cmd->args[0]);
+			print_err("\n");
+		}
+		exit(execve_ret);
+	}
+	else
+	{
+		waitpid(pid, &status, 0);
+		if (pipe_open)
+		{
+			close(cmd->pipes[PIPE_IN]);
+			if (!cmd->next || cmd->type == TYPE_BREAK)
+				close(cmd->pipes[PIPE_OUT]);
+			if (cmd->prev && cmd->prev->type == TYPE_PIPE)
+				close(cmd->prev->pipes[PIPE_OUT]);
+		}
+		if (WIFEXITED(status))
+			status = WEXITSTATUS(status);
+	}
+	return status;
+}
+
+int	exec_cmds(t_list **cmds, char **env)
+{
+	t_list	*cmd;
+	int		status;
+
+	cmd = *cmds;
+	status = EXIT_SUCCESS;
+	while (cmd)
+	{
+		if (!strcmp(cmd->args[0], "cd"))
+		{
+			if (cmd->len < 2)
+				status = print_err("error : cd : bad args\n");
+			else if (chdir(cmd->args[1]))
+			{
+				status = print_err("error : cd : cannot change directory to ");
+				print_err(cmd->args[1]);
+				print_err("\n");
+			}
+		}
+		else
+			status = exec_cmd(cmd, env);
+		cmd = cmd->next;
+	}
+	return (status);
+}
+int	main(int argc, char **argv, char **envp)
 { 
 	t_list	*cmds;
 	int	i;
@@ -155,17 +231,7 @@ int	main(int argc, char **argv)
 	while (++i < argc)
 		parse_arg(&cmds, argv[i]);
 	list_rewind(&cmds);
-	t_list	*curr;
-	int	j;
-	curr = cmds;
-	while (curr)
-	{
-		j = -1;
-		while (++j < curr->len)
-			printf("%s ", curr->args[j]);
-		printf("\n");
-		curr = curr->next;
-	}
+	exec_cmds(&cmds, envp);
 	list_clear(&cmds);
 	return EXIT_SUCCESS;
 }
