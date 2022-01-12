@@ -82,7 +82,6 @@ int	add_arg(t_list	*cmd, char *arg)
 int	list_push(t_list **list, char *arg)
 {
 	t_list	*new_list;
-	t_list	*curr;
 
 	new_list = malloc(sizeof (t_list));
 	if (!new_list)
@@ -142,9 +141,8 @@ int	parse_arg(t_list **cmds, char *arg)
 	else if (is_break)
 		(*cmds)->type = TYPE_BREAK;
 	else
-	{
 		return (add_arg(*cmds, arg));
-	}
+	return EXIT_FAILURE;
 }
 
 int	exec_cmd(t_list *cmd, char **env)
@@ -170,7 +168,8 @@ int	exec_cmd(t_list *cmd, char **env)
 			return exit_fatal();
 		if ((cmd->prev && cmd->prev->type == TYPE_PIPE) && dup2(cmd->prev->pipes[PIPE_OUT], STDIN) < 0)
 			return exit_fatal();
-		if (execve_ret = execve(cmd->args[0], cmd->args, env) < 0)
+		execve_ret = execve(cmd->args[0], cmd->args, env);
+		if (execve_ret < 0)
 		{
 			print_err("error: cannot execute ");
 			print_err(cmd->args[0]);
@@ -233,6 +232,7 @@ int	main(int argc, char **argv, char **envp)
 	list_rewind(&cmds);
 	exec_cmds(&cmds, envp);
 	list_clear(&cmds);
+	while (1);
 	return EXIT_SUCCESS;
 }
  

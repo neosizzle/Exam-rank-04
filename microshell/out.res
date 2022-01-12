@@ -90,7 +90,6 @@ int	add_arg(t_list	*cmd, char *arg)
 int	list_push(t_list **list, char *arg)
 {
 	t_list	*new_list;
-	t_list	*curr;
 
 	new_list = malloc(sizeof (t_list));
 	if (!new_list)
@@ -150,9 +149,8 @@ int	parse_arg(t_list **cmds, char *arg)
 	else if (is_break)
 		(*cmds)->type = TYPE_BREAK;
 	else
-	{
 		return (add_arg(*cmds, arg));
-	}
+	return EXIT_FAILURE;
 }
 
 int	exec_cmd(t_list *cmd, char **env)
@@ -178,7 +176,8 @@ int	exec_cmd(t_list *cmd, char **env)
 			return exit_fatal();
 		if ((cmd->prev && cmd->prev->type == TYPE_PIPE) && dup2(cmd->prev->pipes[PIPE_OUT], STDIN) < 0)
 			return exit_fatal();
-		if (execve_ret = execve(cmd->args[0], cmd->args, env) < 0)
+		execve_ret = execve(cmd->args[0], cmd->args, env);
+		if (execve_ret < 0)
 		{
 			print_err("error: cannot execute ");
 			print_err(cmd->args[0]);
@@ -241,6 +240,7 @@ int	main(int argc, char **argv, char **envp)
 	list_rewind(&cmds);
 	exec_cmds(&cmds, envp);
 	list_clear(&cmds);
+	while (1);
 	return EXIT_SUCCESS;
 }
  
@@ -295,7 +295,7 @@ werwerwer
 qweqweqweqew
 qwewqeqrtregrfyukui
 
-/bin/ls ftest ; /bin/ls ; /bin/ls werwer ; /bin/ls microshell.c ; /bin/ls subject.fr.txt ;
+/bin/ls ftest ; /bin/ls ; /bin/ls werwer ; /bin/ls microshell.c ; /bin/ls subject.en.txt ;
 leaks.res
 microshell
 microshell.c
@@ -303,6 +303,7 @@ out.res
 subject.en.txt
 test.sh
 microshell.c
+subject.en.txt
 
 /bin/ls | /usr/bin/grep micro ; /bin/ls | /usr/bin/grep micro ; /bin/ls | /usr/bin/grep micro ; /bin/ls | /usr/bin/grep micro ;
 microshell
@@ -314,16 +315,268 @@ microshell.c
 microshell
 microshell.c
 
-/bin/cat subject.fr.txt | /usr/bin/grep a | /usr/bin/grep b ; /bin/cat subject.fr.txt ;
+/bin/cat subject.en.txt | /usr/bin/grep a | /usr/bin/grep b ; /bin/cat subject.en.txt ;
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+Don't forget to pass the environment variable to execve
+Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
 
-/bin/cat subject.fr.txt | /usr/bin/grep a | /usr/bin/grep w ; /bin/cat subject.fr.txt ;
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
 
-/bin/cat subject.fr.txt | /usr/bin/grep a | /usr/bin/grep w ; /bin/cat subject.fr.txt
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
 
-/bin/cat subject.fr.txt ; /bin/cat subject.fr.txt | /usr/bin/grep a | /usr/bin/grep b | /usr/bin/grep z ; /bin/cat subject.fr.txt
+Hints:
+Don't forget to pass the environment variable to execve
 
-; /bin/cat subject.fr.txt ; /bin/cat subject.fr.txt | /usr/bin/grep a | /usr/bin/grep b | /usr/bin/grep z ; /bin/cat subject.fr.txt
+Hints:
+Do not leak file descriptors!
+/bin/cat subject.en.txt | /usr/bin/grep a | /usr/bin/grep w ; /bin/cat subject.en.txt ;
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+for example this should work:
+Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
 
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
+
+Hints:
+Don't forget to pass the environment variable to execve
+
+Hints:
+Do not leak file descriptors!
+/bin/cat subject.en.txt | /usr/bin/grep a | /usr/bin/grep w ; /bin/cat subject.en.txt
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+for example this should work:
+Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
+
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
+
+Hints:
+Don't forget to pass the environment variable to execve
+
+Hints:
+Do not leak file descriptors!
+/bin/cat subject.en.txt ; /bin/cat subject.en.txt | /usr/bin/grep a | /usr/bin/grep b | /usr/bin/grep z ; /bin/cat subject.en.txt
+Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
+
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
+
+Hints:
+Don't forget to pass the environment variable to execve
+
+Hints:
+Do not leak file descriptors!Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
+
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
+
+Hints:
+Don't forget to pass the environment variable to execve
+
+Hints:
+Do not leak file descriptors!
+; /bin/cat subject.en.txt ; /bin/cat subject.en.txt | /usr/bin/grep a | /usr/bin/grep b | /usr/bin/grep z ; /bin/cat subject.en.txt
+Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
+
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
+
+Hints:
+Don't forget to pass the environment variable to execve
+
+Hints:
+Do not leak file descriptors!Assignment name  : microshell
+Expected files   : *.c *.h
+Allowed functions: malloc, free, write, close, fork, waitpid, signal, kill, exit, chdir, execve, dup, dup2, pipe, strcmp, strncmp
+--------------------------------------------------------------------------------------
+
+Write a program that will behave like executing a shell command
+- The command line to execute will be the arguments of this program
+- Executable's path will be absolute or relative but your program must not build a path (from the PATH variable for example)
+- You must implement "|" and ";" like in bash
+	- we will never try a "|" immediately followed or preceded by nothing or "|" or ";"
+- Your program must implement the built-in command cd only with a path as argument (no '-' or without parameters)
+	- if cd has the wrong number of argument your program should print in STDERR "error: cd: bad arguments" followed by a '\n'
+	- if cd failed your program should print in STDERR "error: cd: cannot change directory to path_to_change" followed by a '\n' with path_to_change replaced by the argument to cd
+	- a cd command will never be immediately followed or preceded by a "|"
+- You don't need to manage any type of wildcards (*, ~ etc...)
+- You don't need to manage environment variables ($BLA ...)
+- If a system call, except execve and chdir, returns an error your program should immediatly print "error: fatal" in STDERR followed by a '\n' and the program should exit
+- If execve failed you should print "error: cannot execute executable_that_failed" in STDERR followed by a '\n' with executable_that_failed replaced with the path of the failed executable (It should be the first argument of execve)
+- Your program should be able to manage more than hundreds of "|" even if we limit the number of "open files" to less than 30.
+
+for example this should work:
+$>./microshell /bin/ls "|" /usr/bin/grep microshell ";" /bin/echo i love my microshell
+microshell
+i love my microshell
+$>
+
+Hints:
+Don't forget to pass the environment variable to execve
+
+Hints:
+Do not leak file descriptors!
 blah | /bin/echo OK
 OK
 
