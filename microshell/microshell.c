@@ -232,7 +232,6 @@ int	main(int argc, char **argv, char **envp)
 	list_rewind(&cmds);
 	exec_cmds(&cmds, envp);
 	list_clear(&cmds);
-	while (1);
 	return EXIT_SUCCESS;
 }
  
